@@ -282,7 +282,7 @@ function Index() {
           <SectionHeader>Upcoming bookings</SectionHeader>
           <ul style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "0 0 12px", paddingLeft: 18, lineHeight: 1.6 }}>
             <li>Standard check-in is 3pm.</li>
-            <li><strong style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Notified</strong>: cleaners have been told.</li>
+            <li><strong style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Notified</strong>: cleaner has been informed.</li>
             <li><strong style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Confirmed</strong>: cleaner has agreed.</li>
             <li><strong style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Reminder</strong>: follow-up sent 1–2 days before with checkout date and window.</li>
             <li><strong style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Done</strong>: turnover complete.</li>
