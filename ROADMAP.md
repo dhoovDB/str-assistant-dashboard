@@ -43,7 +43,9 @@ Create `config/property.json` to hold non-secret property identity. Schema:
 ```
 `icalUrl` will be consumed by Task 3, `cleanerName` by Task 7's prompt builder, `propertyName` for display. Treat the committed file as a placeholder template — real values are filled in per deployment. Validate schema on server startup; log error and refuse to start if `icalUrl` is missing or empty.
 
-Files: `src/db/supabase.js`, `.env.example`, `config/property.json`
+For v1, the server reads `PROPERTY_ID` from env (URL-based routing deferred to Task 9). The Supabase anon key is used with permissive RLS — security comes from URL secrecy + hard-to-guess property IDs.
+
+Files: `src/db/supabase.ts`, `src/config/property.ts`, `config/property.json`, `.env.example`, `src/start.ts` (importing the validator triggers startup check)
 
 ---
 
@@ -190,3 +192,19 @@ The gaps table flags properties with open maintenance that might prevent booking
 Allow min stay adjustments directly from the gaps table. Click "Drop to 2 nights" on a gap row, dashboard writes back to PriceLabs API.
 
 This is the first write operation to an external system. Requires confirmation dialog and human approval before executing.
+
+---
+
+## Decision log
+
+A short record of architectural choices that aren't obvious from the code. Add entries when the choice resolves a real fork in the road — skip the routine.
+
+### 2026-05-11 — Task 2 scoping
+
+- **Config loaders live in `src/config/`.** Holds `property.ts` now, `briefing-rules.ts` later in Task 6. Why: separates "load + validate config" from db/server/engine layers, and makes the "config is data, not code" rule visible in the layer map.
+- **Supabase checklist helper is full-state upsert, not per-step.** `upsertChecklist(propertyId, bookingId, fullState)` writes all rows for a booking at once. Why: matches the cascade UI's output shape (one click can flip 4 steps); avoids batch primitives.
+- **URL-based property routing deferred to Task 9.** Task 2 reads `PROPERTY_ID` from env so local dev works against one property. URL-in-path scheme (`/<property_id>`) is part of "wire everything," not infra setup.
+- **Hand-rolled validation for `property.json`; no zod re-add.** Three fields, one required non-empty. Adding a 50KB dep for this is overkill. Revisit if `briefing-rules.json` validation gets non-trivial in Task 6.
+- **Cloudflare production secrets deferred.** `.env.example` covers local dev only. Production env vars get set via `wrangler secret put` or the Cloudflare dashboard, handled in Task 10 (deploy docs) or first deploy.
+- **Permissive RLS on Supabase tables.** Anon key + `using (true)` policies — security comes from URL secrecy + hard-to-guess property IDs, not from RLS scoping. Why: matches the "no login for v1" architecture. Revisit if v2 adds auth.
+- **`.js` → `.ts` in CLAUDE.md layer map.** Project is TypeScript end-to-end; the original `.js` references were inconsistencies from the initial scaffold. Updated the whole layer map at once.

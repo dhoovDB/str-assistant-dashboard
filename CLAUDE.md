@@ -43,14 +43,15 @@ Mechanical edits (renames, type updates, doc fixes, file moves the user has name
 ```
 config/property.json            ← property name, cleaner name, iCal URL
 config/briefing-rules.json      ← what to include, flag thresholds, tone
-src/engine/calendar.js          ← parse iCal feed into bookings (pure)
-src/engine/gaps.js              ← compute open gaps between bookings (pure)
-src/engine/briefing.js          ← buildPrompt from config + state (pure)
-src/api/claude.js               ← Claude API call, isolated
-src/api/gcal.js                 ← Google Calendar fetch, isolated
-src/api/pricelabs.js            ← PriceLabs fetch, isolated
-src/db/supabase.js              ← checklist + feedback read/write
-src/server/routes.js            ← /api/bookings, /api/briefing, /api/checklist, /api/feedback
+src/config/                     ← typed loaders that read + validate config/*.json
+src/engine/calendar.ts          ← parse iCal feed into bookings (pure)
+src/engine/gaps.ts              ← compute open gaps between bookings (pure)
+src/engine/briefing.ts          ← buildPrompt from config + state (pure)
+src/api/claude.ts               ← Claude API call, isolated
+src/api/gcal.ts                 ← Google Calendar fetch, isolated
+src/api/pricelabs.ts            ← PriceLabs fetch, isolated
+src/db/supabase.ts              ← checklist + feedback read/write
+src/server/routes.ts            ← /api/bookings, /api/briefing, /api/checklist, /api/feedback
 src/client/                     ← React components: Briefing, BookingCard, Checklist, GapsTable
 ```
 
