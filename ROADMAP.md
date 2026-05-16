@@ -38,13 +38,13 @@ Create `config/property.json` to hold non-secret property identity. Schema:
 {
   "propertyName": "Mountain Loft #1",
   "cleanerName": "Maria",
-  "icalUrl": "https://calendar.google.com/calendar/ical/.../basic.ics",
   "minStay": 3
 }
 ```
-`icalUrl` will be consumed by Task 3, `cleanerName` by Task 7's prompt builder, `propertyName` for display, `minStay` by Task 4's gaps engine. Treat the committed file as a placeholder template — real values are filled in per deployment. Validate schema on server startup:
-- `icalUrl` is required and must be non-empty; log error and refuse to start if missing or empty.
+`cleanerName` is consumed by Task 7's prompt builder, `propertyName` for display, `minStay` by Task 4's gaps engine. The iCal URL itself is a credential and lives in `ICAL_URL` env, not in the committed JSON — see decision log 2026-05-16. Treat the committed file as a placeholder template — real values are filled in per deployment. Validate at server startup:
+- `propertyName` and `cleanerName` must be strings; log error and refuse to start if missing.
 - `minStay` must be a positive integer; log error and use default of `2` if missing or invalid.
+- `ICAL_URL` env must be set and non-empty; log error and refuse to start if missing.
 
 For v1, the server reads `PROPERTY_ID` from env (URL-based routing deferred to Task 9). The Supabase anon key is used with permissive RLS — security comes from URL secrecy + hard-to-guess property IDs.
 
@@ -228,6 +228,14 @@ A short record of architectural choices that aren't obvious from the code. Add e
 
 - **Gaps shown without pricing in v1.** The gaps table flags unbookable nights (gap length < min stay) based on `minStay` from `property.json`. No external pricing API. Why: the core insight is "you have a 2-night gap but 3-night minimum" — that's lost revenue regardless of the nightly rate. Knowing the gap exists is 80% of the value. Adding PriceLabs ($1/month API cost) before confirming the gaps table is actually useful daily is premature optimization. Wire PriceLabs in v2 if manually checking prices becomes a bottleneck.
 - **`minStay` lives in config, not fetched.** The property's minimum stay requirement is set once and changes infrequently. Treating it as config (committed, versioned) rather than live API data is the right tradeoff for v1. If min stay becomes dynamic (weekday vs weekend), revisit in v2.
+
+### 2026-05-16 — iCal URL moved to env; minStay validation added
+
+- **iCal URL is a credential, doesn't belong in committed config.** Airbnb's export URL has a `?t=<token>` query string granting read access to booking history. Anything in `config/property.json` lives in git history forever, even after later deletion. Moved `icalUrl` to `ICAL_URL` in `.env` (local) / `wrangler secret put ICAL_URL` (production).
+- **`src/config/property.ts` exports `propertyConfig` (eager JSON validation) and `getIcalUrl()` (lazy env loader).** The env loader is intentionally a function, not a const. The first attempt was eager (`export const icalUrl = validateIcalUrl()`) and broke client hydration: Vite's dev mode serves `start.ts` to the browser via the route tree's `import type` chain, and because `start.ts` imported the env-validated const, every page load tried to read `process.env.ICAL_URL` in the browser and threw "ICAL_URL missing" before React could attach event handlers. Lazy evaluation moves the throw to first call, which only ever happens server-side (Task 3's iCal fetcher).
+- **`minStay` validation landed.** Task 2 specced it but the original commit shipped without it; folded in here while the validator was already being restructured. Positive integer, defaults to 2.
+- **Trigger.** Real-world: while filling in `property.json` for first deployment, a real Airbnb token briefly sat in the working tree before we caught it. The token has been rotated (read-only iCal, low blast radius — see chat history 2026-05-16).
+- **Server-side fail-fast deferred.** With the lazy loader, a missing `ICAL_URL` won't surface until the first iCal fetch runs in Task 3. Acceptable for v1 because nothing in Tasks 1–2 needs the URL. Revisit if we want a startup-time check that survives the client-bundle leak.
 
 ### 2026-05-15 — Adopted task-discipline rules from a sibling CLAUDE.md
 

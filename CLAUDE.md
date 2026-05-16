@@ -10,7 +10,7 @@ A host dashboard for short-term rentals. Open it and immediately know what's hap
 
 **Config is data, not code.**
 
-Property-specific values live in `config/property.json`: property name, cleaner name, iCal URL. Briefing behavior lives in `config/briefing-rules.json`: what to include, what thresholds trigger flags, tone. Engine functions take config as arguments. They do not import config directly.
+Property-specific values live in `config/property.json`: property name, cleaner name, minimum stay. The iCal URL is a credential and lives in the `ICAL_URL` env var, not in the committed JSON (see ROADMAP decision log 2026-05-16). Briefing behavior lives in `config/briefing-rules.json`: what to include, what thresholds trigger flags, tone. Engine functions take config as arguments. They do not import config directly.
 
 **Engine functions are pure.**
 
@@ -98,7 +98,7 @@ Tasks with unverified code, unmerged WIP, or pending human review are **in progr
 ## Layer map
 
 ```
-config/property.json            ← property name, cleaner name, iCal URL
+config/property.json            ← property name, cleaner name, min stay (iCal URL lives in ICAL_URL env)
 config/briefing-rules.json      ← what to include, flag thresholds, tone
 src/config/                     ← typed loaders that read + validate config/*.json
 src/engine/calendar.ts          ← parse iCal feed into bookings (pure)

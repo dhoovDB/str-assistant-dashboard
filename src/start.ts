@@ -1,7 +1,14 @@
-// Importing propertyConfig runs config/property.json validation at module load.
-// If invalid, the throw propagates out and the server fails fast — see
-// src/config/property.ts for rationale. Reading a field below keeps vite from
-// tree-shaking this import (package.json has sideEffects: false).
+// Importing propertyConfig runs config/property.json validation at module
+// load. If invalid, the throw propagates out — see src/config/property.ts.
+// Reading a field below keeps vite from tree-shaking this import
+// (package.json has sideEffects: false).
+//
+// Note: getIcalUrl() (env loader) is intentionally NOT called here. start.ts
+// is served to the browser by Vite's dev mode via the route tree's type
+// imports, so anything evaluated at this file's top level runs client-side
+// too. process.env.ICAL_URL is undefined in the browser, so eager
+// validation would throw and break hydration. The env loader is invoked
+// server-side by the iCal fetcher (Task 3) instead.
 import { propertyConfig } from "./config/property";
 
 import { createStart, createMiddleware } from "@tanstack/react-start";
