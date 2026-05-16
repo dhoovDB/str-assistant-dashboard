@@ -44,6 +44,57 @@ Mechanical edits (renames, type updates, doc fixes, file moves the user has name
 
 **Explain before process management actions.** Before killing, restarting, or cleaning up background processes (dev servers, daemons, anything started with `run_in_background`), explain what the process is, where it's running, what happens if you act, and what happens if you don't — then wait for confirmation. Same pause-and-confirm shape as the behavior-change rule, applied to actions that affect running processes on the user's machine.
 
+**Feedback and planning mode.** Phrases like "add this to the roadmap," "for the backlog," "I'm thinking about," "FYI," "note that," "consider X" signal planning input, not a directive. Acknowledge in one sentence, note the input where appropriate (memory, ROADMAP planning, decision log), and wait. Only act when you hear an explicit instruction to proceed — see the approval-phrasing rule below.
+
+**Batch feedback before acting.** When multiple pieces of feedback or items land in succession, accumulate them. Before doing anything, summarize what you heard as a numbered list and ask "ready to proceed with all of these?" Wait for confirmation before touching any file.
+
+**Approval phrasing is specific.** "Sounds good," "OK," "yeah," "interesting" — not approval. "Go ahead," "commit it," "make those changes," "do it," "approved" — approval. When in doubt, ask one clarifying question rather than guess.
+
+## Status reporting
+
+Every task summary ends with this block — no exceptions:
+
+```
+---
+WRITTEN TO DISK: [list every file created, modified, or deleted, including memory files]
+ROADMAP.md UPDATED: [yes — what changed / no changes needed / NOT YET — must do before commit]
+GIT STATUS: [untracked / modified, not staged / staged, not committed / committed on <branch> / pushed to <branch> / pushed to main / merged to main]
+PR STATUS: [n/a / draft #N opened / ready #N opened / merged #N / closed without merge]
+NEXT STEP: [one sentence — what needs to happen next, and who acts]
+---
+```
+
+**Reporting Structure:**
+
+- Never use the word "done" or "complete" without this block immediately following it.
+- Never assume a file was written unless the Write/Edit tool ran and returned no error in this session.
+- Never assume a commit happened unless `git commit` ran and returned a hash in this session.
+- Never assume a push happened unless `git push` ran successfully in this session.
+- Never assume a PR exists unless `gh pr create` ran or `gh pr view` confirmed it in this session.
+- If asked "is this on GitHub?" — yes only if push ran successfully in this session, or `gh` confirmed it.
+- If the session was interrupted or a date-change system reminder fired, run `git status` and `gh pr list` before reporting state.
+
+## Definition of done
+
+A task is "done" only when its Status Reporting block can honestly say:
+
+- **WRITTEN TO DISK:** the files exist
+- **GIT STATUS:** committed and pushed (on a branch, or merged to `main`)
+- **PR STATUS:** ready and merged, OR direct-to-main pushed
+- **NEXT STEP:** clean handoff with no outstanding work for this task
+
+Tasks with unverified code, unmerged WIP, or pending human review are **in progress**, not done. Do not claim a task is done while flagging "verification later" — if verification is the remaining step, the task is still in progress and the NEXT STEP line says so explicitly.
+
+## Git commit practices
+
+**One logical change per commit.** Each commit should be a coherent unit you could describe in one sentence. If two changes need two sentences in the commit message, they belong in two commits. Size is a weak signal — a 500-line refactor that does one thing is fine; a 50-line commit that mixes a bug fix and an unrelated rename is two commits. `git bisect` finds the commit that introduced a bug — mixed commits hide the cause. A surgical revert undoes one change without losing unrelated work — bundled commits force all-or-nothing. `git log` should explain what happened, not list "various updates."
+
+**Never commit without explicit approval.** Same approval rule as feature scope (see Working style). "Sounds good" is not approval. "Commit it" or "push to main" is.
+
+**Update ROADMAP.md before committing** when the work resolves a roadmap task, completes verification, or makes a non-obvious architectural decision. The Status Reporting block's `ROADMAP.md UPDATED` line catches this — answer that line honestly before committing.
+
+**Voice.** Commit messages get a slightly warmer tone than neutral but keep subject lines terse and searchable. PR bodies get full personality — informal voice, jokes, emoji-led headers (🚧 🗂️ ✅), small ASCII diagrams where they help. Keep CLAUDE.md, the decision log, and code comments neutral so they read consistently across sessions.
+
 ## Layer map
 
 ```

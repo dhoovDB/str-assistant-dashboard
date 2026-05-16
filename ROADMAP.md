@@ -228,3 +228,9 @@ A short record of architectural choices that aren't obvious from the code. Add e
 
 - **Gaps shown without pricing in v1.** The gaps table flags unbookable nights (gap length < min stay) based on `minStay` from `property.json`. No external pricing API. Why: the core insight is "you have a 2-night gap but 3-night minimum" — that's lost revenue regardless of the nightly rate. Knowing the gap exists is 80% of the value. Adding PriceLabs ($1/month API cost) before confirming the gaps table is actually useful daily is premature optimization. Wire PriceLabs in v2 if manually checking prices becomes a bottleneck.
 - **`minStay` lives in config, not fetched.** The property's minimum stay requirement is set once and changes infrequently. Treating it as config (committed, versioned) rather than live API data is the right tradeoff for v1. If min stay becomes dynamic (weekday vs weekend), revisit in v2.
+
+### 2026-05-15 — Adopted task-discipline rules from a sibling CLAUDE.md
+
+- Added Status Reporting (mandatory end-of-task block), Definition of done, three new Working style bullets (feedback/planning mode, batching, approval phrasing), and Git commit practices to `CLAUDE.md`.
+- Why: a sibling project's `CLAUDE.md` showed these conventions in action; adopting them tightens "what state is the work in" reporting and prevents bundling unrelated changes into one commit.
+- Deliberately left out: 4D framework definitions inline (those live in the README for human readers), "Adding a new X" runbook sections (premature for v1), and separate voice/writing guidance (no surfaces that need it yet).
