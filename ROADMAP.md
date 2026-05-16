@@ -64,7 +64,7 @@ Files: `src/api/gcal.ts`, `src/engine/calendar.ts`
 
 ---
 
-### Task 4: Gaps engine (~1 hour)
+### Task 4: Gaps engine (complete)
 
 Pure function `computeGaps(bookings, minStay)`. Inputs: sorted array of bookings, and the property's minimum stay. Output: array of gaps `{startDate, endDate, nights, flagged}`, where `flagged = gap.nights < minStay`.
 

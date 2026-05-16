@@ -5,15 +5,30 @@ import { Briefing } from "@/client/Briefing";
 import { BookingCard } from "@/client/BookingCard";
 import { GapsTable } from "@/client/GapsTable";
 import type { Booking, ChecklistKey, Gap } from "@/client/types";
+import { formatDate } from "@/client/dates";
 import { fetchBookings } from "@/api/gcal";
+import { computeGaps } from "@/engine/gaps";
+import { propertyConfig } from "@/config/property";
 
 const tablerCss = "https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css";
 
 // Server function: runs only on the SSR/server path. fetchBookings() reads
 // ICAL_URL from process.env, which is undefined in the browser — see
 // CLAUDE.md "Env reads must be lazy" + ROADMAP decision log 2026-05-16.
-const loadBookings = createServerFn({ method: "GET" }).handler(async () => {
-  return fetchBookings();
+// Bundles bookings + gaps in one server hop so the loader is one round-trip.
+const loadDashboardData = createServerFn({ method: "GET" }).handler(async () => {
+  const bookings = await fetchBookings();
+  const rawGaps = computeGaps(bookings, propertyConfig.minStay);
+  // Engine returns ISO date / numeric / boolean shapes; UI wants pre-formatted
+  // display strings. Transform here (server-side) so the client just renders.
+  // Price stays "—" until PriceLabs integration in v2 (decision log 2026-05-13).
+  const gaps: Gap[] = rawGaps.map((g) => ({
+    dates: `${formatDate(g.startDate)}–${formatDate(g.endDate)}`,
+    nights: g.nights,
+    price: "—",
+    flag: g.flagged ? `Min stay ${propertyConfig.minStay}` : "",
+  }));
+  return { bookings, gaps };
 });
 
 export const Route = createFileRoute("/")({
@@ -24,16 +39,11 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "stylesheet", href: tablerCss }],
   }),
-  loader: async () => ({ bookings: await loadBookings() }),
+  loader: async () => loadDashboardData(),
   component: Index,
 });
 
-// Gaps and briefing remain mocked until Tasks 4 (gaps engine) and 7 (Claude briefing).
-const gaps: Gap[] = [
-  { dates: "May 12–13", nights: 1, price: "$145", flag: "Min stay 3" },
-  { dates: "May 17–19", nights: 2, price: "$162", flag: "Min stay 3" },
-];
-
+// Briefing remains mocked until Task 7 (Claude integration).
 const briefingMock = {
   id: "mock-briefing-1",
   text: "One active stay checking out today at noon. Cleaner is confirmed for the 10am–4pm window. Next guest arrives May 13 — message them tonight to share door code and parking notes.",
@@ -48,7 +58,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 }
 
 function Index() {
-  const { bookings: initialBookings } = Route.useLoaderData();
+  const { bookings: initialBookings, gaps } = Route.useLoaderData();
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
 
   const updateChecklist = (id: string, next: Record<ChecklistKey, boolean>) => {
