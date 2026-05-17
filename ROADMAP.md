@@ -119,7 +119,7 @@ Files: `src/engine/briefing.js`, `src/api/claude.js`, `src/server/routes.js`
 
 ---
 
-### Task 8: Feedback mechanism (~1 hour)
+### Task 8: Feedback mechanism (complete)
 
 The thumbs up/down buttons already render in `Briefing.tsx` with prop signature `<Briefing id={...} text={...} onFeedback={(helpful: boolean) => void} />`. Wire `onFeedback` to POST `/api/feedback` with `{briefingId, helpful}`. Server writes to the `briefing_feedback` table, linking back to the `briefings` row by id.
 

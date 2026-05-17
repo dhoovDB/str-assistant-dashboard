@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   id: string;
@@ -6,14 +6,40 @@ type Props = {
   onFeedback: (helpful: boolean) => void;
 };
 
+// localStorage key prefix for the "you already voted on this briefing" marker.
+// Keyed by briefing id so each day's briefing gets its own entry. Surviving
+// reloads is the whole point — a vote should not reset just because the user
+// refreshed the page on the same device. Cross-device voting is intentionally
+// still possible (no server-side dedup); for a single-user dashboard this is
+// the right tradeoff.
+const LS_PREFIX = "briefing-feedback:";
+
 export function Briefing({ id, text, onFeedback }: Props) {
-  const [submittedFor, setSubmittedFor] = useState<string | null>(null);
-  const submitted = submittedFor === id;
+  const [submitted, setSubmitted] = useState(false);
+
+  // localStorage is unavailable on the SSR pass; this effect only runs client-side.
+  // Brief flicker is possible between SSR (buttons appear active) and hydration
+  // (buttons grey out if already voted). Acceptable for v1 — the briefing panel
+  // is not load-bearing and the alternative (suppress SSR) costs more than it saves.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(LS_PREFIX + id)) setSubmitted(true);
+    } catch {
+      // localStorage can throw in private-browsing modes or restricted environments —
+      // fail closed (button stays active, user can vote, just no persistence).
+    }
+  }, [id]);
 
   const handleClick = (helpful: boolean) => {
     if (submitted) return;
     onFeedback(helpful);
-    setSubmittedFor(id);
+    try {
+      localStorage.setItem(LS_PREFIX + id, helpful ? "up" : "down");
+    } catch {
+      // Same swallow as above. The in-memory `submitted` state still prevents
+      // a double-click within this page load.
+    }
+    setSubmitted(true);
   };
 
   const buttonStyle: React.CSSProperties = {

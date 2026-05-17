@@ -12,7 +12,7 @@ import { computeGaps } from "@/engine/gaps";
 import { buildPrompt } from "@/engine/briefing";
 import { propertyConfig, getPropertyId } from "@/config/property";
 import { briefingRules } from "@/config/briefing-rules";
-import { createBriefing, getBriefingByDate } from "@/db/supabase";
+import { createBriefing, getBriefingByDate, recordFeedback } from "@/db/supabase";
 
 const tablerCss = "https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css";
 
@@ -54,18 +54,23 @@ const loadDashboardData = createServerFn({ method: "GET" }).handler(async () => 
       today,
     });
     const text = await generateBriefing(prompt);
+    // Capture the rules in effect at generation time alongside the data. When the
+    // v2 feedback-review UI / v6 auto-tuner queries old briefings, they need to
+    // know which rules produced each one — a thumbs-down briefing generated under
+    // an old rule set is a different signal than one under the current rules.
+    const context = { bookings, gaps: rawGaps, rules: briefingRules };
     const id = await createBriefing({
       propertyId,
       date: today,
       text,
-      context: { bookings, gaps: rawGaps },
+      context,
     });
     briefingRow = {
       id,
       property_id: propertyId,
       date: today,
       text,
-      context: { bookings, gaps: rawGaps },
+      context,
       created_at: new Date().toISOString(),
     };
   }
@@ -76,6 +81,16 @@ const loadDashboardData = createServerFn({ method: "GET" }).handler(async () => 
     briefing: { id: briefingRow.id, text: briefingRow.text },
   };
 });
+
+// Server function for the thumbs vote. Runs only on the server (recordFeedback
+// reads Supabase env via the supabase.ts module-load env reads). Called from
+// the Briefing component via the onFeedback prop; the response isn't awaited
+// — Briefing.tsx already gives optimistic UI via local state + localStorage.
+const submitBriefingFeedback = createServerFn({ method: "POST" })
+  .inputValidator((data: { briefingId: string; helpful: boolean }) => data)
+  .handler(async ({ data }) => {
+    await recordFeedback(data.briefingId, data.helpful);
+  });
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -116,7 +131,11 @@ function Index() {
         <Briefing
           id={briefing.id}
           text={briefing.text}
-          onFeedback={(helpful) => console.log("briefing feedback:", { id: briefing.id, helpful })}
+          onFeedback={(helpful) => {
+            submitBriefingFeedback({ data: { briefingId: briefing.id, helpful } }).catch(
+              (err) => console.error("briefing feedback write failed:", err),
+            );
+          }}
         />
 
         <section>
