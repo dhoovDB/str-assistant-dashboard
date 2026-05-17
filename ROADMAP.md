@@ -206,6 +206,14 @@ Coverage targets:
 
 Frameworks: Playwright for the smoke test, Vitest for unit tests. Run locally; CI later if we add it.
 
+### Briefing feedback enhancements
+
+Close the briefing tuning loop end-to-end. Three pieces, all dependent on Task 8 (feedback writes) and the rules snapshot in `briefings.context`:
+
+- **Qualitative thumbs-down input.** After tapping thumbs-down, a short optional text field appears with a "What did this miss?" prompt. Free-form text persists in a new `briefing_feedback.note` column. A 3-word note tells you what to fix; a binary vote tells you something was off. Optional, never required — keeps the one-tap path intact for users who don't want to elaborate.
+- **Force-regenerate briefing button.** Today you have to delete the Supabase row manually to see new `briefing-rules.json` apply same-day. A button on the briefing panel regenerates immediately. Closes the "edit a rule, see the result" iteration loop without waiting until tomorrow.
+- **Feedback review UI.** A `/feedback` page listing recent briefings alongside their votes, their `context` (bookings + gaps that were in play), and the rules snapshot from the day they generated. Removes the "run SQL in Supabase dashboard" friction from the manual tuning loop.
+
 ---
 
 ## v3: TIDY Integration (Cleaner Coordination)
@@ -236,6 +244,34 @@ The gaps table flags properties with open maintenance that might prevent booking
 Allow min stay adjustments directly from the gaps table. Click "Drop to 2 nights" on a gap row, dashboard writes back to PriceLabs API.
 
 This is the first write operation to an external system. Requires confirmation dialog and human approval before executing.
+
+---
+
+## v6: Claude-powered briefing rule tuning
+
+Close the briefing-quality loop without requiring the host to manually analyze feedback. A scheduled job uses Claude to spot patterns in accumulated thumbs up/down data and suggest changes to `briefing-rules.json`.
+
+Workflow:
+
+- Cron job (weekly cadence to start) queries `briefings` + `briefing_feedback` for the recent window.
+- Sends the joined data to Claude with a prompt like "Here are the last N briefings, their thumbs up/down votes, the bookings/gaps context Claude saw at generation time, and the customRules in effect at the time. Suggest specific additions/removals/edits to customRules to address downvote patterns. Cite the briefings that motivate each suggestion."
+- Output: a structured suggestion — added/removed/edited rules, each with rationale tied to specific briefings.
+- Surfaces in the dashboard for host review. **Never auto-applies.** Host approves, edits, or rejects each suggestion before it lands in `briefing-rules.json`.
+
+Meta: this is the briefing AI tuning its own prompts based on host signal. The host stays as approver, but the analytical work moves off their plate.
+
+Prereqs:
+
+- Task 8 shipped (feedback writes to Supabase).
+- v2 "Feedback review UI" probably shipped first, so the host can see raw data before trusting auto-suggestions.
+- Enough vote volume to be statistically meaningful (~4+ weeks of daily voting).
+
+Open questions for when this lands:
+
+- Cadence: weekly (course-correct fast) vs monthly (more data per cycle). Start weekly.
+- Model: Opus 4.7 — analytical task, intelligence-sensitive.
+- Artifact format: a suggested customRules diff against the current file, a markdown report, or both.
+- Suggest-only vs auto-apply: suggest-only for v1 of this phase. Auto-apply behind an explicit allowlist later, if ever.
 
 ---
 
